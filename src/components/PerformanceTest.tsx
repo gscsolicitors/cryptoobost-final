@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ export const PerformanceTest = () => {
   });
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<string[]>([]);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Test de performance de rendu
   const testRenderPerformance = useCallback(() => {
@@ -169,17 +170,34 @@ export const PerformanceTest = () => {
   const testStateSynchronization = useCallback(() => {
     setResults(prev => [...prev, '🔄 Test de synchronisation des états...']);
     
+    // Nettoyer l'interval précédent s'il existe
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    
     // Simuler des mises à jour d'état rapides
     let updateCount = 0;
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       updateCount++;
       setMetrics(prev => ({ ...prev, renderTime: Math.random() * 10 }));
       
       if (updateCount >= 10) {
-        clearInterval(interval);
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
         setResults(prev => [...prev, '✅ Synchronisation des états optimale']);
       }
     }, 50);
+  }, []);
+
+  // Nettoyage au démontage du composant
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
   }, []);
 
   return (

@@ -113,15 +113,16 @@ function App() {
       viewport.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
     }
     
-    // Prevent zoom on iOS
-    document.addEventListener('gesturestart', (e) => e.preventDefault());
+    // Prevent zoom on iOS - Store function reference for proper cleanup
+    const preventGestureStart = (e: Event) => e.preventDefault();
+    document.addEventListener('gesturestart', preventGestureStart);
     
     // Add accessibility enhancements
     document.body.setAttribute('role', 'application');
     document.body.setAttribute('aria-label', 'CryptoBoost Application');
     
     return () => {
-      document.removeEventListener('gesturestart', (e) => e.preventDefault());
+      document.removeEventListener('gesturestart', preventGestureStart);
     };
   }, []);
 

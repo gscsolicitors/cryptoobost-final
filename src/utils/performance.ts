@@ -180,21 +180,31 @@ export const createFormOptimizer = () => {
 export const createNotificationManager = () => {
   const notifications: Array<{ id: string; message: string; type: string; timestamp: number }> = [];
   const maxNotifications = 5;
+  const timeouts = new Map<string, NodeJS.Timeout>();
 
-  return {
+  const manager = {
     add: (message: string, type: string = 'info') => {
       const id = Date.now().toString();
       notifications.push({ id, message, type, timestamp: Date.now() });
       
       // Limiter le nombre de notifications
       if (notifications.length > maxNotifications) {
-        notifications.shift();
+        const removed = notifications.shift();
+        if (removed) {
+          // Nettoyer le timeout de la notification supprimée
+          const timeout = timeouts.get(removed.id);
+          if (timeout) {
+            clearTimeout(timeout);
+            timeouts.delete(removed.id);
+          }
+        }
       }
 
       // Auto-remove après 5 secondes
-      setTimeout(() => {
-        this.remove(id);
+      const timeout = setTimeout(() => {
+        manager.remove(id);
       }, 5000);
+      timeouts.set(id, timeout);
 
       return id;
     },
@@ -203,12 +213,24 @@ export const createNotificationManager = () => {
       if (index > -1) {
         notifications.splice(index, 1);
       }
+      
+      // Nettoyer le timeout
+      const timeout = timeouts.get(id);
+      if (timeout) {
+        clearTimeout(timeout);
+        timeouts.delete(id);
+      }
     },
     getAll: () => [...notifications],
     clear: () => {
+      // Nettoyer tous les timeouts avant de vider
+      timeouts.forEach(timeout => clearTimeout(timeout));
+      timeouts.clear();
       notifications.length = 0;
     },
   };
+
+  return manager;
 };
 
 // Optimisation des requêtes API
